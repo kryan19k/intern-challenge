@@ -3,51 +3,29 @@ import { TxSecureRecord } from "@repo/crypto";
 /**
  * Storage layer for encrypted transaction records.
  *
- * Two modes:
+ * Two modes controlled by process.env.VERCEL:
  * - **Local (standalone):** SQLite via sql.js for persistent storage.
  *   Data survives server restarts in data/transactions.db.
  * - **Vercel (serverless):** In-memory Map. Serverless functions are
  *   ephemeral anyway, so persistence requires an external DB (Postgres).
  *   This is acceptable for a demo.
- *
- * The store auto-detects the environment via process.env.VERCEL.
  */
 
-// ── Environment detection ────────────────────────────────────────────
-const IS_VERCEL = !!process.env.VERCEL;
+// ── In-memory store ──────────────────────────────────────────────────
+const store = new Map<string, TxSecureRecord>();
 
-// ── Storage interface ────────────────────────────────────────────────
-interface Store {
-  save(record: TxSecureRecord): void;
-  get(id: string): TxSecureRecord | undefined;
-  count(): number;
-}
+/**
+ * Initialize the store. On Vercel this is a no-op (Map is ready).
+ * Locally, loads existing records from SQLite into the Map.
+ */
+export async function initStore(): Promise<void> {
+  if (process.env.VERCEL) return; // Map is already ready
 
-// ── In-memory store (used on Vercel) ─────────────────────────────────
-class MemoryStore implements Store {
-  private map = new Map<string, TxSecureRecord>();
-
-  save(record: TxSecureRecord): void {
-    this.map.set(record.id, record);
-  }
-
-  get(id: string): TxSecureRecord | undefined {
-    return this.map.get(id);
-  }
-
-  count(): number {
-    return this.map.size;
-  }
-}
-
-// ── SQLite store (used locally) ──────────────────────────────────────
-class SqliteStore implements Store {
-  private db: import("sql.js").Database | null = null;
-
-  async init(): Promise<void> {
+  try {
     const path = await import("path");
     const fs = await import("fs");
-    const { default: initSqlJs } = await import("sql.js");
+    const sqljs = await import("sql.js");
+    const initSqlJs = sqljs.default;
 
     const DB_PATH = path.resolve(process.cwd(), "data", "transactions.db");
     const dataDir = path.dirname(DB_PATH);
@@ -56,15 +34,16 @@ class SqliteStore implements Store {
     }
 
     const SQL = await initSqlJs();
+    let db;
 
     if (fs.existsSync(DB_PATH)) {
       const fileBuffer = fs.readFileSync(DB_PATH);
-      this.db = new SQL.Database(fileBuffer);
+      db = new SQL.Database(fileBuffer);
     } else {
-      this.db = new SQL.Database();
+      db = new SQL.Database();
     }
 
-    this.db.run(`
+    db.run(`
       CREATE TABLE IF NOT EXISTS transactions (
         id             TEXT PRIMARY KEY,
         partyId        TEXT NOT NULL,
@@ -80,24 +59,34 @@ class SqliteStore implements Store {
       )
     `);
 
-    this.persist();
-    // Store path for later persistence
-    (this as unknown as { dbPath: string }).dbPath = DB_PATH;
-  }
+    // Load all existing records into the Map
+    const rows = db.exec("SELECT * FROM transactions");
+    if (rows.length > 0) {
+      const cols = rows[0].columns;
+      for (const values of rows[0].values) {
+        const record: Record<string, unknown> = {};
+        cols.forEach((col, i) => { record[col] = values[i]; });
+        store.set(record.id as string, record as unknown as TxSecureRecord);
+      }
+    }
 
-  private persist(): void {
-    if (!this.db) return;
-    const dbPath = (this as unknown as { dbPath: string }).dbPath;
-    if (!dbPath) return;
+    // Store the db reference for persistence
+    (globalThis as unknown as { __sqliteDb: unknown; __sqliteDbPath: string }).__sqliteDb = db;
+    (globalThis as unknown as { __sqliteDbPath: string }).__sqliteDbPath = DB_PATH;
+  } catch (err) {
+    console.warn("SQLite init failed, using in-memory only:", err);
+  }
+}
+
+/** Persist to SQLite on disk (local only, no-op on Vercel) */
+function persistToSqlite(record: TxSecureRecord): void {
+  try {
+    const g = globalThis as unknown as { __sqliteDb: { run: Function; export: Function }; __sqliteDbPath: string };
+    if (!g.__sqliteDb) return;
     const fs = require("fs") as typeof import("fs");
-    const data = this.db.export();
-    fs.writeFileSync(dbPath, Buffer.from(data));
-  }
 
-  save(record: TxSecureRecord): void {
-    if (!this.db) throw new Error("SQLite not initialized");
-    this.db.run(
-      `INSERT INTO transactions (
+    g.__sqliteDb.run(
+      `INSERT OR REPLACE INTO transactions (
         id, partyId, createdAt,
         payload_nonce, payload_ct, payload_tag,
         dek_wrap_nonce, dek_wrapped, dek_wrap_tag,
@@ -110,62 +99,26 @@ class SqliteStore implements Store {
         record.alg, record.mk_version,
       ]
     );
-    this.persist();
+
+    const data = g.__sqliteDb.export();
+    fs.writeFileSync(g.__sqliteDbPath, Buffer.from(data as Uint8Array));
+  } catch {
+    // Silently fail — Map is the source of truth
   }
-
-  get(id: string): TxSecureRecord | undefined {
-    if (!this.db) throw new Error("SQLite not initialized");
-    const stmt = this.db.prepare("SELECT * FROM transactions WHERE id = ?");
-    stmt.bind([id]);
-    if (!stmt.step()) { stmt.free(); return undefined; }
-    const row = stmt.getAsObject() as unknown as TxSecureRecord;
-    stmt.free();
-    return row;
-  }
-
-  count(): number {
-    if (!this.db) throw new Error("SQLite not initialized");
-    const stmt = this.db.prepare("SELECT COUNT(*) as count FROM transactions");
-    stmt.step();
-    const row = stmt.getAsObject() as { count: number };
-    stmt.free();
-    return row.count;
-  }
-}
-
-// ── Singleton ────────────────────────────────────────────────────────
-let store: Store | null = null;
-
-/**
- * Initialize the store. On Vercel, uses a simple Map.
- * Locally, uses SQLite with file persistence.
- */
-export async function initStore(): Promise<void> {
-  if (IS_VERCEL) {
-    store = new MemoryStore();
-  } else {
-    const sqlite = new SqliteStore();
-    await sqlite.init();
-    store = sqlite;
-  }
-}
-
-function getStore(): Store {
-  if (!store) throw new Error("Store not initialized — call initStore() first");
-  return store;
 }
 
 /** Store a new encrypted record */
 export function saveRecord(record: TxSecureRecord): void {
-  getStore().save(record);
+  store.set(record.id, record);
+  persistToSqlite(record);
 }
 
 /** Retrieve a record by ID, or undefined if not found */
 export function getRecord(id: string): TxSecureRecord | undefined {
-  return getStore().get(id);
+  return store.get(id);
 }
 
 /** Get the total number of stored records */
 export function getRecordCount(): number {
-  return getStore().count();
+  return store.size;
 }
