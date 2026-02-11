@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { TxSecureRecord } from "@repo/crypto";
+import { TxSecureRecord } from "./crypto";
 
 /**
  * PostgreSQL-backed persistent storage via Supabase.

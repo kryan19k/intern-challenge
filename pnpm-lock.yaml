@@ -23,9 +23,6 @@ importers:
       '@fastify/sensible':
         specifier: ^6.0.0
         version: 6.0.4
-      '@repo/crypto':
-        specifier: workspace:*
-        version: link:../../packages/crypto
       '@supabase/supabase-js':
         specifier: ^2.49.0
         version: 2.95.3
@@ -36,9 +33,6 @@ importers:
         specifier: ^5.1.0
         version: 5.7.4
     devDependencies:
-      '@repo/tsconfig':
-        specifier: workspace:*
-        version: link:../../packages/tsconfig
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.33

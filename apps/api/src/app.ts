@@ -1,7 +1,7 @@
 import Fastify, { FastifyInstance, FastifyError } from "fastify";
 import cors from "@fastify/cors";
 import sensible from "@fastify/sensible";
-import { CryptoError } from "@repo/crypto";
+import { CryptoError } from "./crypto";
 import { healthRoutes } from "./routes/health";
 import { txRoutes } from "./routes/tx";
 

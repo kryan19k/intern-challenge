@@ -6,7 +6,7 @@ import {
   CryptoError,
   TamperedDataError,
   ValidationError,
-} from "@repo/crypto";
+} from "../crypto";
 import { saveRecord, getRecord } from "../store";
 
 /**
