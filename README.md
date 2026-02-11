@@ -4,60 +4,42 @@ A production-ready TurboRepo monorepo implementing **envelope encryption** with 
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        User (Browser)                           │
-│                                                                 │
-│  ┌─────────────┐    ┌──────────────┐    ┌───────────────────┐  │
-│  │  Enter JSON  │───▶│  Encrypt &   │───▶│  View Encrypted   │  │
-│  │  + partyId   │    │  Store       │    │  Record           │  │
-│  └─────────────┘    └──────────────┘    └───────────────────┘  │
-│                                                │                │
-│                                          ┌─────▼─────┐         │
-│                                          │  Decrypt   │         │
-│                                          └───────────┘         │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ HTTP (fetch)
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Next.js Frontend (port 3000)                  │
-│                    apps/web — App Router                         │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ HTTP (fetch)
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Fastify API (port 3001)                       │
-│                    apps/api                                      │
-│                                                                 │
-│  POST /tx/encrypt ──▶ encrypt(MK, partyId, payload)             │
-│  GET  /tx/:id     ──▶ return encrypted record                   │
-│  POST /tx/:id/decrypt ──▶ decrypt(MK, record)                   │
-│  GET  /health     ──▶ server status                             │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ function call
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    @repo/crypto Package                          │
-│                    packages/crypto                               │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │              Envelope Encryption Flow                     │   │
-│  │                                                          │   │
-│  │  1. Generate random DEK (32 bytes)                       │   │
-│  │  2. Encrypt payload with DEK (AES-256-GCM)              │   │
-│  │     → payload_ct + payload_nonce + payload_tag           │   │
-│  │  3. Wrap DEK with Master Key (AES-256-GCM)              │   │
-│  │     → dek_wrapped + dek_wrap_nonce + dek_wrap_tag        │   │
-│  │  4. Zero out DEK from memory                            │   │
-│  │  5. Return TxSecureRecord                               │   │
-│  └──────────────────────────────────────────────────────────┘   │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ store/retrieve
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    SQLite Database                               │
-│                    data/transactions.db (persistent)             │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Browser["User (Browser)"]
+        A["Enter JSON + partyId"] --> B["Encrypt & Store"]
+        B --> C["View Encrypted Record"]
+        C --> D["Decrypt"]
+    end
+
+    Browser -->|"HTTP (fetch)"| Frontend
+
+    subgraph Frontend["Next.js Frontend — port 3000"]
+        F["apps/web — App Router"]
+    end
+
+    Frontend -->|"HTTP (fetch)"| API
+
+    subgraph API["Fastify API — port 3001"]
+        direction LR
+        G["POST /tx/encrypt"]
+        H["GET /tx/:id"]
+        I["POST /tx/:id/decrypt"]
+        J["GET /health"]
+    end
+
+    API -->|"function call"| Crypto
+
+    subgraph Crypto["@repo/crypto — packages/crypto"]
+        direction TB
+        K["1. Generate random DEK (32 bytes)"]
+        K --> L["2. Encrypt payload with DEK (AES-256-GCM)"]
+        L --> M["3. Wrap DEK with Master Key (AES-256-GCM)"]
+        M --> N["4. Zero out DEK from memory"]
+        N --> O["5. Return TxSecureRecord"]
+    end
+
+    API -->|"store / retrieve"| DB[("SQLite — data/transactions.db")]
 ```
 
 ## Security Design
