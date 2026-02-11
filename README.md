@@ -109,14 +109,12 @@ cd intern-challange
 # 2. Install dependencies
 pnpm install
 
-# 3. Generate a master key
-pnpm generate-master-key
-
-# 4. Create .env file in the root
+# 3. Create .env file in the root
 cp .env.example .env
-# Paste the generated master key into .env
+# The example includes a default MASTER_KEY_HEX for development.
+# Set your SUPABASE_URL and SUPABASE_SERVICE_KEY from your Supabase project.
 
-# 5. Start development servers
+# 4. Start development servers
 pnpm dev
 ```
 
@@ -245,6 +243,8 @@ vercel
 | Variable | Where | Description |
 |----------|-------|-------------|
 | `MASTER_KEY_HEX` | API | 64-char hex string (32 bytes) |
+| `SUPABASE_URL` | API | Supabase project URL (e.g. `https://xxx.supabase.co`) |
+| `SUPABASE_SERVICE_KEY` | API | Supabase service role key |
 | `NEXT_PUBLIC_API_URL` | Web | URL of the deployed API |
 
 ## Project Structure
@@ -256,7 +256,14 @@ intern-challange/
 │   │   ├── src/
 │   │   │   ├── index.ts      # Standalone server entry
 │   │   │   ├── app.ts        # Fastify app builder
-│   │   │   ├── store.ts      # In-memory record store
+│   │   │   ├── store.ts      # Supabase PostgreSQL store
+│   │   │   ├── crypto/       # Local copy of encryption lib (Vercel-compatible)
+│   │   │   │   ├── encrypt.ts
+│   │   │   │   ├── decrypt.ts
+│   │   │   │   ├── errors.ts
+│   │   │   │   ├── types.ts
+│   │   │   │   ├── validate.ts
+│   │   │   │   └── index.ts
 │   │   │   └── routes/
 │   │   │       ├── tx.ts     # Transaction routes
 │   │   │       └── health.ts # Health check

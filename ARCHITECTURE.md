@@ -30,35 +30,42 @@ AES-256-GCM gives us **authenticated encryption** in a single pass:
 
 ## Storage Trade-offs
 
-### Current: In-Memory Map
+### Current: Supabase PostgreSQL
 
 ```
 Pros:
-  ✅ Zero setup — no database to configure
-  ✅ Fast — O(1) lookups
-  ✅ Simple — easy to understand and debug
+  ✅ Persistent — data survives server restarts and redeployments
+  ✅ Works identically in local dev and Vercel serverless
+  ✅ No filesystem access needed (HTTP-based client)
+  ✅ ACID transactions via PostgreSQL
+  ✅ Free tier available for development
 
 Cons:
-  ❌ Data lost on server restart
-  ❌ Not suitable for production
-  ❌ No persistence, no replication
+  ❌ Requires Supabase account and project setup
+  ❌ Additional network latency vs in-memory
+  ❌ External dependency on Supabase service
 ```
 
-### Production Alternative: PostgreSQL
+### Why Supabase Over Raw PostgreSQL?
+
+- **Zero infrastructure** — no database server to manage
+- **Serverless-friendly** — connects over HTTP via `@supabase/supabase-js`, no connection pooling issues
+- **Vercel compatible** — works in serverless functions without native modules or filesystem access
+- **Built-in dashboard** — easy to inspect and manage data during development
+
+### Production Alternative: Managed PostgreSQL
 
 ```
 Pros:
-  ✅ Persistent storage
-  ✅ ACID transactions
-  ✅ Can add encryption at rest
-  ✅ Supports indexing for fast lookups
+  ✅ Full control over database configuration
+  ✅ Encryption at rest with managed keys
+  ✅ Read replicas for horizontal scaling
+  ✅ BYTEA columns for more efficient binary storage
 
 Cons:
-  ❌ Requires database setup and management
-  ❌ Additional latency for network calls
+  ❌ Requires database administration
+  ❌ Connection pooling needed for serverless
 ```
-
-The in-memory approach is explicitly acceptable for this challenge and keeps the focus on the encryption implementation.
 
 ## API Design Decisions
 
@@ -107,9 +114,10 @@ Extracting encryption logic into `packages/crypto` provides:
 ## Future Scalability Considerations
 
 ### Horizontal Scaling
-The current in-memory store doesn't support multiple server instances. For horizontal scaling:
-- Move to a shared database (PostgreSQL, Redis)
-- Use sticky sessions or shared state
+The current Supabase PostgreSQL store already supports multiple server instances since all API instances connect to the same hosted database. For further scaling:
+- Add read replicas for high-read workloads
+- Implement connection pooling (Supabase provides PgBouncer)
+- Add Redis caching for frequently accessed records
 
 ### Key Rotation
 The `mk_version` field enables zero-downtime key rotation:

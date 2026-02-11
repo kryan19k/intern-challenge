@@ -66,7 +66,7 @@ Binary data (nonces, tags, ciphertext, wrapped DEKs) is stored as hex strings be
 3. **Consistency** — All binary fields use the same encoding
 4. **No padding issues** — Unlike Base64, hex has no padding characters
 
-**Trade-off:** Hex encoding doubles the storage size compared to raw binary. In production with a database, you might use `BYTEA` columns (PostgreSQL) for more efficient storage.
+**Trade-off:** Hex encoding doubles the storage size compared to raw binary. The current Supabase PostgreSQL store uses `TEXT` columns for simplicity. In a production optimization pass, you could use `BYTEA` columns for more efficient binary storage.
 
 ## Tag Verification Importance
 
@@ -122,6 +122,34 @@ Validation rules:
 - Ciphertext: non-empty
 - Algorithm: must be "AES-256-GCM"
 - mk_version: positive number
+
+## Database Security (Supabase PostgreSQL)
+
+### Current Implementation
+
+```
+Supabase PostgreSQL
+├── Connection: @supabase/supabase-js (HTTP-based, no raw TCP)
+├── Auth: Service role key (full access, server-side only)
+├── Table: transactions (stores encrypted records as hex TEXT)
+├── RLS: Disabled (service role bypasses RLS)
+└── Encryption at rest: Supabase default (AES-256 on disk)
+```
+
+### Security Considerations
+
+- **Service role key** is used server-side only — never exposed to the browser
+- **No Row Level Security (RLS)** — acceptable because the API is the only client, and all data is already encrypted at the application layer
+- **Double encryption** — data is encrypted by our envelope encryption before it reaches the database, and Supabase encrypts at rest on disk
+- **Network security** — Supabase connections use HTTPS/TLS
+
+### Production Recommendations
+
+1. **Enable RLS** with policies scoped to authenticated service roles
+2. **Rotate the service role key** periodically
+3. **Use connection pooling** (Supabase PgBouncer) for high-traffic deployments
+4. **Enable Supabase audit logging** to track all database access
+5. **Restrict network access** — allow connections only from known API server IPs
 
 ## Production Security Checklist
 
