@@ -9,8 +9,12 @@ import { TxSecureRecord } from "@repo/crypto";
  * Uses sql.js — a pure JavaScript SQLite implementation compiled from
  * the C source via Emscripten. No native compilation or node-gyp needed.
  *
- * The database file is stored at data/transactions.db relative to the
- * API root. Data survives server restarts.
+ * Locally, the database file is stored at data/transactions.db and
+ * data survives server restarts.
+ *
+ * On Vercel (serverless), the filesystem is read-only so we use an
+ * in-memory-only SQLite database. Data is ephemeral per cold start,
+ * which is acceptable for a demo — production would use PostgreSQL.
  *
  * All encrypted fields are stored as TEXT (hex strings), matching the
  * TxSecureRecord type. SQLite is a great fit here because:
@@ -20,13 +24,18 @@ import { TxSecureRecord } from "@repo/crypto";
  * - Pure JS — works on any platform without build tools
  */
 
-// ── Database path ────────────────────────────────────────────────────
-const DB_PATH = path.resolve(process.cwd(), "data", "transactions.db");
+// ── Environment detection ────────────────────────────────────────────
+const IS_VERCEL = !!process.env.VERCEL;
+const DB_PATH = IS_VERCEL
+  ? null // Vercel has a read-only filesystem — use in-memory only
+  : path.resolve(process.cwd(), "data", "transactions.db");
 
-// Ensure the data directory exists
-const dataDir = path.dirname(DB_PATH);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+// Ensure the data directory exists (local only)
+if (DB_PATH) {
+  const dataDir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
 }
 
 // ── Database singleton ───────────────────────────────────────────────
@@ -39,8 +48,8 @@ let db: SqlJsDatabase | null = null;
 export async function initStore(): Promise<void> {
   const SQL = await initSqlJs();
 
-  // Load existing database file if it exists, otherwise create new
-  if (fs.existsSync(DB_PATH)) {
+  // Load existing database file if it exists (local), otherwise create new
+  if (DB_PATH && fs.existsSync(DB_PATH)) {
     const fileBuffer = fs.readFileSync(DB_PATH);
     db = new SQL.Database(fileBuffer);
   } else {
@@ -67,9 +76,9 @@ export async function initStore(): Promise<void> {
   persist();
 }
 
-/** Write the in-memory database to disk */
+/** Write the in-memory database to disk (skipped on Vercel) */
 function persist(): void {
-  if (!db) return;
+  if (!db || !DB_PATH) return;
   const data = db.export();
   const buffer = Buffer.from(data);
   fs.writeFileSync(DB_PATH, buffer);

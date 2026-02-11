@@ -23,6 +23,18 @@ async function getApp() {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // ── CORS headers (must be set before any response) ──────────────────
+  const origin = req.headers.origin || "*";
+  res.setHeader("Access-Control-Allow-Origin", origin);
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  // Handle preflight requests immediately
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
+
   const app = await getApp();
 
   await app.ready();
@@ -38,10 +50,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Forward Fastify response to Vercel
   res.status(response.statusCode);
 
-  // Set response headers
+  // Set response headers (skip CORS — already set above)
   const headers = response.headers;
   for (const [key, value] of Object.entries(headers)) {
-    if (value !== undefined) {
+    if (value !== undefined && !key.toLowerCase().startsWith("access-control")) {
       res.setHeader(key, value as string);
     }
   }
