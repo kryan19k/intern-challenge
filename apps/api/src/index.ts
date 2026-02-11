@@ -32,9 +32,9 @@ async function main(): Promise<void> {
 
   console.log("✅ MASTER_KEY loaded and validated (32 bytes)");
 
-  // ── Initialize SQLite database ─────────────────────────────────────
+  // ── Initialize store (Supabase PostgreSQL) ─────────────────────────
   await initStore();
-  console.log("✅ SQLite database initialized (data/transactions.db)");
+  console.log("✅ Store initialized");
 
   // ── Start server ────────────────────────────────────────────────────
   const app = await buildApp();

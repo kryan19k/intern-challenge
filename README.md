@@ -39,7 +39,7 @@ flowchart TD
         N --> O["5. Return TxSecureRecord"]
     end
 
-    API -->|"store / retrieve"| DB[("SQLite — data/transactions.db")]
+    API -->|"store / retrieve"| DB[("PostgreSQL — Supabase")]
 ```
 
 ## Security Design
@@ -87,7 +87,7 @@ The `mk_version` field records which master key version encrypted each record. T
 |-----------|------------|
 | MK in env variable | HSM or KMS (AWS KMS, Google Cloud KMS) |
 | Single MK version | Automated key rotation with version tracking |
-| SQLite (local file) | PostgreSQL/DynamoDB with encryption at rest |
+| Supabase PostgreSQL | Managed PostgreSQL with encryption at rest |
 | No authentication | JWT/API keys with RBAC |
 | No rate limiting | Rate limiting per API key |
 | No audit logging | Full audit trail of all encrypt/decrypt operations |
@@ -289,8 +289,8 @@ intern-challange/
 ## Trade-offs & Future Improvements
 
 ### Storage
-- **Current:** SQLite via sql.js — persistent, zero-config, ACID-compliant, data survives restarts
-- **Future:** PostgreSQL with encryption at rest, or DynamoDB for serverless at scale
+- **Current:** Supabase PostgreSQL — persistent, hosted, works identically in dev and serverless
+- **Future:** Managed PostgreSQL with encryption at rest, read replicas for scale
 
 ### Authentication
 - **Current:** No auth — anyone can encrypt/decrypt
@@ -319,7 +319,7 @@ intern-challange/
 | Monorepo | TurboRepo + pnpm workspaces |
 | Frontend | Next.js 14 (App Router) + Tailwind CSS |
 | Backend | Fastify 5 |
-| Storage | SQLite (sql.js — pure JS, no native deps) |
+| Storage | Supabase PostgreSQL |
 | Encryption | Node.js native `crypto` (zero dependencies) |
 | Testing | Vitest |
 | Language | TypeScript (strict mode) |

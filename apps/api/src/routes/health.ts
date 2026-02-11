@@ -14,7 +14,7 @@ export async function healthRoutes(app: FastifyInstance): Promise<void> {
       status: "ok",
       timestamp: new Date().toISOString(),
       mk_loaded: mkLoaded,
-      records: getRecordCount(),
+      records: await getRecordCount(),
     });
   });
 }

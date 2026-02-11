@@ -68,8 +68,8 @@ export async function txRoutes(app: FastifyInstance): Promise<void> {
         // Validate the record structure before storing (defense in depth)
         validateRecord(record);
 
-        // Store in memory
-        saveRecord(record);
+        // Store in PostgreSQL (Supabase)
+        await saveRecord(record);
 
         return reply.status(201).send({
           success: true,
@@ -108,7 +108,7 @@ export async function txRoutes(app: FastifyInstance): Promise<void> {
     },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      const record = getRecord(id);
+      const record = await getRecord(id);
 
       if (!record) {
         return reply.status(404).send({
@@ -145,7 +145,7 @@ export async function txRoutes(app: FastifyInstance): Promise<void> {
     },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      const record = getRecord(id);
+      const record = await getRecord(id);
 
       if (!record) {
         return reply.status(404).send({
