@@ -35,28 +35,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const app = await getApp();
+  try {
+    const app = await getApp();
 
-  await app.ready();
+    await app.ready();
 
-  // Convert Vercel request to Fastify-compatible format
-  const response = await app.inject({
-    method: req.method as "GET" | "POST" | "PUT" | "DELETE",
-    url: req.url || "/",
-    headers: req.headers as Record<string, string>,
-    payload: req.body ? JSON.stringify(req.body) : undefined,
-  });
+    // Convert Vercel request to Fastify-compatible format
+    const response = await app.inject({
+      method: req.method as "GET" | "POST" | "PUT" | "DELETE",
+      url: req.url || "/",
+      headers: req.headers as Record<string, string>,
+      payload: req.body ? JSON.stringify(req.body) : undefined,
+    });
 
-  // Forward Fastify response to Vercel
-  res.status(response.statusCode);
+    // Forward Fastify response to Vercel
+    res.status(response.statusCode);
 
-  // Set response headers (skip CORS — already set above)
-  const headers = response.headers;
-  for (const [key, value] of Object.entries(headers)) {
-    if (value !== undefined && !key.toLowerCase().startsWith("access-control")) {
-      res.setHeader(key, value as string);
+    // Set response headers (skip CORS — already set above)
+    const headers = response.headers;
+    for (const [key, value] of Object.entries(headers)) {
+      if (value !== undefined && !key.toLowerCase().startsWith("access-control")) {
+        res.setHeader(key, value as string);
+      }
     }
-  }
 
-  res.send(response.body);
+    res.send(response.body);
+  } catch (err) {
+    console.error("Handler error:", err);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
 }
