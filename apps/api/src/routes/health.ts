@@ -7,7 +7,7 @@ import { getRecordCount } from "../store";
  */
 export async function healthRoutes(app: FastifyInstance): Promise<void> {
   app.get("/health", async (_request, reply) => {
-    const masterKey = process.env.MASTER_KEY;
+    const masterKey = process.env.MASTER_KEY_HEX;
     const mkLoaded = typeof masterKey === "string" && masterKey.length === 64;
 
     return reply.status(200).send({

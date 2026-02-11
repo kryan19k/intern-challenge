@@ -9,7 +9,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
  * serverless environment. Each request creates a new Fastify instance,
  * injects the request, and returns the response.
  *
- * Environment variables (MASTER_KEY) are configured in the Vercel dashboard.
+ * Environment variables (MASTER_KEY_HEX) are configured in the Vercel dashboard.
  */
 
 let appPromise: ReturnType<typeof buildApp> | null = null;

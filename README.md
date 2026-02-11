@@ -227,7 +227,7 @@ cd apps/api
 vercel
 
 # Set environment variable in Vercel dashboard:
-# MASTER_KEY = <your-64-char-hex-key>
+# MASTER_KEY_HEX = <your-64-char-hex-key>
 ```
 
 ### Deploy the Web App
@@ -244,7 +244,7 @@ vercel
 
 | Variable | Where | Description |
 |----------|-------|-------------|
-| `MASTER_KEY` | API | 64-char hex string (32 bytes) |
+| `MASTER_KEY_HEX` | API | 64-char hex string (32 bytes) |
 | `NEXT_PUBLIC_API_URL` | Web | URL of the deployed API |
 
 ## Project Structure

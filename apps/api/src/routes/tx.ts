@@ -53,7 +53,7 @@ export async function txRoutes(app: FastifyInstance): Promise<void> {
         payload: Record<string, unknown>;
       };
 
-      const masterKey = process.env.MASTER_KEY;
+      const masterKey = process.env.MASTER_KEY_HEX;
       if (!masterKey) {
         return reply.status(500).send({
           success: false,
@@ -154,7 +154,7 @@ export async function txRoutes(app: FastifyInstance): Promise<void> {
         });
       }
 
-      const masterKey = process.env.MASTER_KEY;
+      const masterKey = process.env.MASTER_KEY_HEX;
       if (!masterKey) {
         return reply.status(500).send({
           success: false,

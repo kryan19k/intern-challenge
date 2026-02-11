@@ -8,29 +8,29 @@ dotenv.config({ path: "../../.env" });
 /**
  * Standalone Fastify server entry point.
  *
- * Validates that the MASTER_KEY environment variable is set and correctly
+ * Validates that the MASTER_KEY_HEX environment variable is set and correctly
  * formatted before starting the server. This is a "fail fast" approach —
  * better to crash on startup with a clear message than to fail silently
  * on the first request.
  */
 async function main(): Promise<void> {
-  // ── Validate MASTER_KEY ─────────────────────────────────────────────
-  const masterKey = process.env.MASTER_KEY;
+  // ── Validate MASTER_KEY_HEX ─────────────────────────────────────────────
+  const masterKey = process.env.MASTER_KEY_HEX;
 
   if (!masterKey) {
-    console.error("❌ MASTER_KEY environment variable is not set.");
+    console.error("❌ MASTER_KEY_HEX environment variable is not set.");
     console.error("   Run: pnpm generate-master-key");
-    console.error("   Then set MASTER_KEY in your .env file.");
+    console.error("   Then set MASTER_KEY_HEX in your .env file.");
     process.exit(1);
   }
 
   if (masterKey.length !== 64 || !/^[0-9a-fA-F]+$/.test(masterKey)) {
-    console.error("❌ MASTER_KEY must be exactly 64 hex characters (32 bytes).");
+    console.error("❌ MASTER_KEY_HEX must be exactly 64 hex characters (32 bytes).");
     console.error(`   Got ${masterKey.length} characters.`);
     process.exit(1);
   }
 
-  console.log("✅ MASTER_KEY loaded and validated (32 bytes)");
+  console.log("✅ MASTER_KEY_HEX loaded and validated (32 bytes)");
 
   // ── Initialize store (Supabase PostgreSQL) ─────────────────────────
   await initStore();

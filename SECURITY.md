@@ -32,7 +32,7 @@ This document outlines the threat model, security measures, and production recom
 
 ```
 Master Key (MK)
-├── Stored in: Environment variable (MASTER_KEY)
+├── Stored in: Environment variable (MASTER_KEY_HEX)
 ├── Format: 64-character hex string (32 bytes)
 ├── Generation: crypto.randomBytes(32)
 ├── Validation: Checked on server startup (fail-fast)

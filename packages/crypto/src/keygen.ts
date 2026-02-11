@@ -18,11 +18,11 @@ export function generateMasterKey(): string {
 // a fresh master key to stdout. Usage:
 //   pnpm generate-master-key
 //
-// Copy the output and set it as your MASTER_KEY environment variable.
+// Copy the output and set it as your MASTER_KEY_HEX environment variable.
 if (require.main === module) {
   const key = generateMasterKey();
   console.log("\n🔑 Generated Master Key (32 bytes, hex-encoded):\n");
   console.log(`   ${key}\n`);
-  console.log("   Copy this value and set it as your MASTER_KEY environment variable.");
+  console.log("   Copy this value and set it as your MASTER_KEY_HEX environment variable.");
   console.log("   ⚠️  Do NOT commit this key to source control.\n");
 }
