@@ -63,7 +63,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   // ── Global error handler ──────────────────────────────────────────────
   // Catches unhandled errors and returns consistent JSON responses.
   // Never leaks stack traces — only returns the error message.
-  app.setErrorHandler((error, _request, reply) => {
+  app.setErrorHandler((error: FastifyError, _request, reply) => {
     // Fastify validation errors (from JSON schema)
     if (error.validation) {
       return reply.status(400).send({
