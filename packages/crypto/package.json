@@ -1,0 +1,19 @@
+{
+  "name": "@repo/crypto",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "generate-key": "node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+  },
+  "devDependencies": {
+    "@repo/tsconfig": "workspace:*",
+    "@types/node": "^20.0.0",
+    "vitest": "^2.1.0",
+    "typescript": "^5.7.0"
+  }
+}
